@@ -9,10 +9,14 @@ import json
 import output_layers_list
 
 # initalize completed_models_list and failed_models_list to log processing models to geojsons
-processed_models_dict = {
-    'completed_models_list': [],
-    'failed_models_list': [],
-}
+# processed_models_dict = {
+#     'completed_models_list': [],
+#     'failed_models_list': [],
+# }
+
+# open processed_models json file and load into dictionary.
+with open("./output/Processed Models.json", "r") as infile:
+    processed_models_dict = json.load(infile)
 
 with open(r"Z:\LWI\LWI S3 Key.txt") as secret_file:
     secret = secret_file.readlines()
