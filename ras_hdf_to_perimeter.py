@@ -20,50 +20,50 @@ def make_perimeter(args):
         os.makedirs(home_dir)
 
     ras_output_extract_wse_to_shp.tempDirSweep(tempDir)
-    hf = h5py.File(args.file, 'r')
-    list_of_2DAreas = ras_output_extract_wse_to_shp.get2DAreaNames(hf)
-    # timesteps = ras_output_extract_wse_to_shp.get_timesteps(hf)
-    # all_data = np.empty((0, timesteps + 6), ) # Includes an extra wse column for maximum row value
-    all_data = np.empty((0, 5), ) # Doesnt include wse columns
+    with h5py.File(args.file, 'r') as hf:
+        list_of_2DAreas = ras_output_extract_wse_to_shp.get2DAreaNames(hf)
+        # timesteps = ras_output_extract_wse_to_shp.get_timesteps(hf)
+        # all_data = np.empty((0, timesteps + 6), ) # Includes an extra wse column for maximum row value
+        all_data = np.empty((0, 5), ) # Doesnt include wse columns
 
-    #Initialize shapefile of all 2D flow cells
-    poly_wse_shp = os.path.join(tempDir, 'ras_wse.shp')
-    w = shapefile.Writer(poly_wse_shp)
-    w.field('Area2D', 'C')
-    w.field('Cell_Index', 'N')
-    w.field('Easting', 'N', decimal=2)
-    w.field('Northing', 'N', decimal=2)
-    w.field('min_elev', 'N', decimal=2)
+        #Initialize shapefile of all 2D flow cells
+        poly_wse_shp = os.path.join(tempDir, 'ras_wse.shp')
+        w = shapefile.Writer(poly_wse_shp)
+        w.field('Area2D', 'C')
+        w.field('Cell_Index', 'N')
+        w.field('Easting', 'N', decimal=2)
+        w.field('Northing', 'N', decimal=2)
+        w.field('min_elev', 'N', decimal=2)
 
-    #Loop through all 2D flow areas in HDF file and extract geometry pts and results
-    for curr_2DArea in list_of_2DAreas:
-        print("Current 2D Area is: %s" % curr_2DArea)
+        #Loop through all 2D flow areas in HDF file and extract geometry pts and results
+        for curr_2DArea in list_of_2DAreas:
+            print("Current 2D Area is: %s" % curr_2DArea)
 
-        xy_pts = np.array(ras_output_extract_wse_to_shp.get2DArea_cellcenter_pts(curr_2DArea, hf))
-        min_elev = np.array(ras_output_extract_wse_to_shp.get2DCells_min_elev(curr_2DArea, hf)).round(decimals=2)
-        transpose_min_elev = min_elev.T
+            xy_pts = np.array(ras_output_extract_wse_to_shp.get2DArea_cellcenter_pts(curr_2DArea, hf))
+            min_elev = np.array(ras_output_extract_wse_to_shp.get2DCells_min_elev(curr_2DArea, hf)).round(decimals=2)
+            transpose_min_elev = min_elev.T
 
-        cell_index = np.arange(xy_pts.shape[0])
-        curr_2DArea_index = [curr_2DArea.decode('UTF-8')]* (xy_pts.shape[0])
+            cell_index = np.arange(xy_pts.shape[0])
+            curr_2DArea_index = [curr_2DArea.decode('UTF-8')]* (xy_pts.shape[0])
 
-        #Adding columns to results array
-        all_data_for_curr_2DArea = np.column_stack((curr_2DArea_index, cell_index, xy_pts, min_elev))
+            #Adding columns to results array
+            all_data_for_curr_2DArea = np.column_stack((curr_2DArea_index, cell_index, xy_pts, min_elev))
 
-        #Save into the overall dataset
-        all_data = np.append(all_data, all_data_for_curr_2DArea, axis=0)
+            #Save into the overall dataset
+            all_data = np.append(all_data, all_data_for_curr_2DArea, axis=0)
 
-        # Assemble 2D Cell Polygons
-        cell_face_info = ras_output_extract_wse_to_shp.get_Cells_Face_Info(hf, curr_2DArea)
-        cell_face_xy_pts = ras_output_extract_wse_to_shp.get_FacePoints_Coordinates(hf, curr_2DArea)
-        cell_face_index_pts = ras_output_extract_wse_to_shp.get_Cells_FacePoints_Index(hf, curr_2DArea)
+            # Assemble 2D Cell Polygons
+            cell_face_info = ras_output_extract_wse_to_shp.get_Cells_Face_Info(hf, curr_2DArea)
+            cell_face_xy_pts = ras_output_extract_wse_to_shp.get_FacePoints_Coordinates(hf, curr_2DArea)
+            cell_face_index_pts = ras_output_extract_wse_to_shp.get_Cells_FacePoints_Index(hf, curr_2DArea)
 
-        #Assemble info about perimeter faces and facepoints
-        cell_facept_is_perimeter = ras_output_extract_wse_to_shp.is_FacePoint_perimeter(hf, curr_2DArea)
-        face_facept_index = ras_output_extract_wse_to_shp.get_faces_FacePoint_Index(hf, curr_2DArea)
-        face_perimeter_info = ras_output_extract_wse_to_shp.get_faces_Perimeter_Info(hf, curr_2DArea)
-        face_perimeter_values = ras_output_extract_wse_to_shp.get_faces_Perimeter_Values(hf, curr_2DArea)
-        face_orientation_info = ras_output_extract_wse_to_shp.get_face_orientation_info(hf, curr_2DArea)
-        face_orientation_values = ras_output_extract_wse_to_shp.get_face_orientation_values(hf, curr_2DArea)
+            #Assemble info about perimeter faces and facepoints
+            cell_facept_is_perimeter = ras_output_extract_wse_to_shp.is_FacePoint_perimeter(hf, curr_2DArea)
+            face_facept_index = ras_output_extract_wse_to_shp.get_faces_FacePoint_Index(hf, curr_2DArea)
+            face_perimeter_info = ras_output_extract_wse_to_shp.get_faces_Perimeter_Info(hf, curr_2DArea)
+            face_perimeter_values = ras_output_extract_wse_to_shp.get_faces_Perimeter_Values(hf, curr_2DArea)
+            face_orientation_info = ras_output_extract_wse_to_shp.get_face_orientation_info(hf, curr_2DArea)
+            face_orientation_values = ras_output_extract_wse_to_shp.get_face_orientation_values(hf, curr_2DArea)
 
         #Assemble current polygons
         cell_ids = []
