@@ -14,4 +14,4 @@ def output_layers_list(geojson_folder_path, outputfilename):
 if __name__ == '__main__':
     geojson_folder_path = './output/perimeter/'
     outputfilename = './output/perimeter_list.json'
-    
+    output_layers_list(geojson_folder_path, outputfilename)
