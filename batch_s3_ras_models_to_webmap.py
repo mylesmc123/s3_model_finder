@@ -5,6 +5,14 @@ import re,os
 import pandas as pd
 import h5py
 import ras_hdf_to_perimeter
+import json
+import output_layers_list
+
+# initalize completed_models_list and failed_models_list to log processing models to geojsons
+processed_models_dict = {
+    'completed_models_list': [],
+    'failed_models_list': [],
+}
 
 with open(r"Z:\LWI\LWI S3 Key.txt") as secret_file:
     secret = secret_file.readlines()
@@ -45,15 +53,6 @@ for bucket in bucket_names:
         'ras': {
             'all_hdfs': [],
             'plan_hdfs': [],
-            # 'models': {
-            #     'directory': [],
-            #     'plans': {
-            #         'file': '',
-            #         'name': '',
-            #         'description': '',
-            #         'ras_type': '',
-            #     },
-            # },
         },
     }
     for obj in my_bucket.objects.all():
@@ -72,9 +71,7 @@ for bucket in bucket_names:
             
 # models
 
-
 # %%
-
 models_df = pd.DataFrame(models)
 # models_df = models_df.transpose()
 models_df
@@ -100,7 +97,6 @@ for region in models:
 model_dirs['lwi-region4']['dirs']
 
 
-
 # %%
 # Remove duplicates from list of model directories
 for region in model_dirs:
@@ -122,8 +118,7 @@ for region in model_dirs:
                 # print(plan_hdf)
 #                 model_dirs['first_plan_file'] = plan_hdf
 
-
-# last_plan_files['lwi-region4']['deliverables/20230504_08080203_UC_RAS1D2DModelSetupP2/UC_UpperCalcasieu-2D']
+# last_plan_files['lwi-region4']
 
 # %%
 # For each plan, open hdf and get model name, description, and ras type (1D, 2D, etc.), and pull a geospatial extent from the hdf.
@@ -136,6 +131,12 @@ for region in last_plan_files:
             head, tail = os.path.split(last_plan_files[region][model_dir][plan])
             hdf_dl_file_name = "temp.hdf"
             model_title = tail.split(".")[0]
+            s3_model_location = os.path.join(region, head)
+
+            # If s3_model_location is in completed_models_list or failed_models_list, skip this model.
+            if s3_model_location in processed_models_dict['completed_models_list'] or s3_model_location in processed_models_dict['failed_models_list']:
+                print('Model already processed. Skipping.')
+                continue
             # if not os.path.exists(hdf_dl_file_name):
             #     os.makedirs(hdf_dl_file_name)
 
@@ -176,6 +177,7 @@ for region in last_plan_files:
                 args_dict =  {
                         "model_title": model_title,
                         "file": hdf_dl_file_name,
+                        "s3_model_location": s3_model_location,
                         "postprocessingdirectory": "./output/perimeter",
                         "forecast": model_title,
                         "wkt": projection,
@@ -189,8 +191,18 @@ for region in last_plan_files:
                 # Simplespace is used to convert a dictionary to the same type as sysArgs would have.
                 args = SimpleNamespace(**args_dict)
                 
-                # return the geojson perimeter file name
-                perimeter_geojson = ras_hdf_to_perimeter.make_perimeter(args)
+                # return the perimeter gdf. 
+                perimeter_gdf = ras_hdf_to_perimeter.make_perimeter(args)
+
+                # if returned gdf is not a string, add this model directory to the completed list
+                if not isinstance(perimeter_gdf,str):
+                    processed_models_dict['completed_models_list'].append(s3_model_location)
+                else:
+                    processed_models_dict['failed_models_list'].append(s3_model_location)
+                
+                # write dictionary to json file.
+                with open("./output/Processed Models.json", "w") as outfile:
+                    json.dump(processed_models_dict, outfile)
 
             else:
                 # TODO - Run ras_hdf_to_perimeter_1D
@@ -200,3 +212,6 @@ for region in last_plan_files:
 
             # delete hdf file
             os.remove(hdf_dl_file_name)
+
+# %%
+output_layers_list.output_layers_list('./output/perimeter/', './output/perimeter_list.json')

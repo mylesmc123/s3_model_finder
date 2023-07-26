@@ -1,3 +1,4 @@
+import glob
 import os
 import shutil
 
@@ -12,7 +13,7 @@ from tqdm import tqdm
 import geopandas as gpd
 
 def make_perimeter(args):
-    home_dir = os.path.join(args.postprocessingdirectory,args.model_title)
+    home_dir = os.path.join(args.postprocessingdirectory)
     tempDir = os.path.join(home_dir,"tempfiles")
     postp_area = os.path.join(args.postprocessingdirectory, "postp_area.shp")
 
@@ -41,7 +42,7 @@ def make_perimeter(args):
 
             xy_pts = np.array(ras_output_extract_wse_to_shp.get2DArea_cellcenter_pts(curr_2DArea, hf))
             min_elev = np.array(ras_output_extract_wse_to_shp.get2DCells_min_elev(curr_2DArea, hf)).round(decimals=2)
-            transpose_min_elev = min_elev.T
+            # transpose_min_elev = min_elev.T
 
             cell_index = np.arange(xy_pts.shape[0])
             curr_2DArea_index = [curr_2DArea.decode('UTF-8')]* (xy_pts.shape[0])
@@ -53,17 +54,17 @@ def make_perimeter(args):
             all_data = np.append(all_data, all_data_for_curr_2DArea, axis=0)
 
             # Assemble 2D Cell Polygons
-            cell_face_info = ras_output_extract_wse_to_shp.get_Cells_Face_Info(hf, curr_2DArea)
+            # cell_face_info = ras_output_extract_wse_to_shp.get_Cells_Face_Info(hf, curr_2DArea)
             cell_face_xy_pts = ras_output_extract_wse_to_shp.get_FacePoints_Coordinates(hf, curr_2DArea)
             cell_face_index_pts = ras_output_extract_wse_to_shp.get_Cells_FacePoints_Index(hf, curr_2DArea)
 
             #Assemble info about perimeter faces and facepoints
             cell_facept_is_perimeter = ras_output_extract_wse_to_shp.is_FacePoint_perimeter(hf, curr_2DArea)
-            face_facept_index = ras_output_extract_wse_to_shp.get_faces_FacePoint_Index(hf, curr_2DArea)
-            face_perimeter_info = ras_output_extract_wse_to_shp.get_faces_Perimeter_Info(hf, curr_2DArea)
-            face_perimeter_values = ras_output_extract_wse_to_shp.get_faces_Perimeter_Values(hf, curr_2DArea)
-            face_orientation_info = ras_output_extract_wse_to_shp.get_face_orientation_info(hf, curr_2DArea)
-            face_orientation_values = ras_output_extract_wse_to_shp.get_face_orientation_values(hf, curr_2DArea)
+            # face_facept_index = ras_output_extract_wse_to_shp.get_faces_FacePoint_Index(hf, curr_2DArea)
+            # face_perimeter_info = ras_output_extract_wse_to_shp.get_faces_Perimeter_Info(hf, curr_2DArea)
+            # face_perimeter_values = ras_output_extract_wse_to_shp.get_faces_Perimeter_Values(hf, curr_2DArea)
+            # face_orientation_info = ras_output_extract_wse_to_shp.get_face_orientation_info(hf, curr_2DArea)
+            # face_orientation_values = ras_output_extract_wse_to_shp.get_face_orientation_values(hf, curr_2DArea)
 
         #Assemble current polygons
         cell_ids = []
@@ -71,16 +72,15 @@ def make_perimeter(args):
         curr_2DArea_Polygon_xy_pts = []
         cell_id = 0
         cell_ids = []
+        
         print ('Assemble current 2D Area polygons..')
         for row in tqdm(cell_face_index_pts):
             #find if facepoints are perimeter
-            # print('find if facepoints are on the perimeter')
             perimeter_facepts = []
             for facept in row:
                 if facept != -1:
                     if cell_facept_is_perimeter[facept] == -1:
                         perimeter_facepts.append(facept)
-            #print(perimeter_facepts)
 
             #Declare empty polygon list for 2D cell
             polygon = []
@@ -96,54 +96,6 @@ def make_perimeter(args):
 
                 if i == (index_size -1):
                     next_facept = row[0]
-
-                # #If the current facept is on the perimeter, add the perimeter points
-                # if curr_facept in tqdm(perimeter_facepts):
-                    
-                #     if next_facept in perimeter_facepts:
-                #         face_index=0
-                        
-                #         for face in face_facept_index:
-                #             if curr_facept == face_facept_index[face_index][0]:
-                #                 potential_face = face_index
-                                
-                #                 if next_facept == face_facept_index[potential_face][1]:
-                #                     next_is_first = False
-                #                     curr_face_index = face_index
-                #                     # print("found face")
-                #                     break
-                            
-                #             if next_facept == face_facept_index[face_index][0]:
-                #                 potential_face = face_index
-                                
-                #                 if curr_facept == face_facept_index[potential_face][1]:
-                #                     next_is_first = True
-                #                     curr_face_index = face_index
-                #                     # print("found face")
-                #                     break
-
-                #             face_index +=1
-
-
-                #         perimeter_st_pt = face_perimeter_info[curr_face_index][0]
-                #         num_perimeter_pts = face_perimeter_info[curr_face_index][1]
-                #         perimeter_end_pt = perimeter_st_pt + num_perimeter_pts - 1
-                #         perimeter_pt_index = perimeter_st_pt
-
-                #         extra_perimeter_xy_pts = []
-
-                #         # print("...adding perimeter pts, for face %s" % curr_face_index )
-                #         while perimeter_pt_index <= perimeter_end_pt:
-                #             # polygon.append(face_perimeter_values[perimeter_pt_index])
-                #             extra_perimeter_xy_pts.append(face_perimeter_values[perimeter_pt_index])
-                #             perimeter_pt_index += 1
-
-                #         if next_is_first:
-                #             extra_perimeter_xy_pts = extra_perimeter_xy_pts[::-1]
-
-                #         polygon.extend(extra_perimeter_xy_pts)
-
-
                 i += 1
 
             #Append the first face pt coordinate
@@ -165,10 +117,6 @@ def make_perimeter(args):
             
             if len(poly_row) > 2:
                 w.poly([poly_row[::-1]]) #clockwise flip
-                #w.record(INT=nr, LOWPREC=nr, MEDPREC=nr, HIGH)
-                #w.record(Area2D=str_curr_2DArea,Cell_Index=cell_id, Easting=all_data_for_curr_2DArea[cell_id][])
-                #w.record('Area2D', str_curr_2DArea)
-                #w.record('Cell Index', cell_id)
                 records = np.array(all_data_for_curr_2DArea[cell_ids[row_id]]).tolist()
                 w.record(*records)
 
@@ -183,50 +131,72 @@ def make_perimeter(args):
 
     # Open the shapefile as a geodataframe, dissolve the polygons, reproject to EPS4326, add data, and save as a geojson.
     output_geojson = os.path.join(home_dir, f'{args.model_title}.geojson')
-# {
-#                         "file": hdf_dl_file_name,
-#                         "postprocessingdirectory": "./output/perimeter",
-#                         "forecast": model_title,
-#                         "wkt": projection,
-#                         "timestep": timestep,
-#                         "run_type": run_type,
-#                         "region": region,
-#                         "software_version": software_version,
-#                         "units_system": units_system,  
-#                     }
 
-    gdf = gpd.read_file(poly_wse_shp).dissolve(by="Area2D").to_crs(epsg=4326).drop(columns=["Cell_Index", "min_elev", "Easting", "Northing"])
-    # Add columns for model_title, region, run_type, timestep, software_version, units_system
-    gdf["Model Title"] = args.model_title
-    gdf["Region"] = args.region
-    gdf["Run Type"] = args.run_type
-    gdf["Timestep"] = args.timestep
-    gdf["Software Version"] = args.software_version
-    gdf["Units System"] = args.units_system
+    try:
+        gdf = gpd.read_file(poly_wse_shp).dissolve(by="Area2D").to_crs(epsg=4326).drop(columns=["Cell_Index", "min_elev", "Easting", "Northing"])
+        # Add columns for model_title, region, run_type, timestep, software_version, units_system
+        gdf["Model Title"] = args.model_title
+        gdf["Region"] = args.region
+        gdf["Run Type"] = args.run_type
+        gdf["Timestep"] = args.timestep
+        gdf["Software Version"] = args.software_version
+        gdf["Units System"] = args.units_system
+        gdf["S3 Model Location"] = args.s3_model_location
 
+        gdf.to_file(output_geojson, driver='GeoJSON')
     
-    # .to_file(output_geojson, driver='GeoJSON')
+    except:
+        print("Could not convert shapefile to geojson. Invalid Geometry")
+        # Copy poly_wse_shp shapefiles with glob in the tempfiles dir to invalid folder and rename to model_title
+        for shp in glob.glob(f'tempDir/*'):
+            shutil.copy(shp, os.path.join(home_dir, "invalid_geometry", f'{args.model_title}_{shp}'))
+        gdf = "invalid_geometry"
 
     # Delete the temp directory
     try:
         shutil.rmtree(tempDir)
     except:
         print(f"Could not delete {tempDir}")
+        
+
+    return gdf
     
 if __name__ == "__main__":
         
-    hdf_file = r"Z:\py\s3_model_finder\s3_hdf_files\East_Galveston_Bay.p08.hdf"
-    model_title = hdf_file.split("\\")[-1].split(".")[0]
-    with h5py.File(hdf_file, 'r') as hf:
-        projection = hf.attrs['Projection'].decode('UTF-8')
+    hdf_file = r"Z:\py\s3_model_finder\s3_hdf_files\WC.p08.hdf"
+    s3_model_location = "deliverables/20230404_TO3_Hydrology_Model_Stage2/HUC8_08090302_HEC-RAS_V631_20230404/Model/HUC8_08090302_HEC-RAS_V631_20230404/"
+    region = "lwi-region4"
 
+    model_title = hdf_file.split("\\")[-1].split(".")[0]
+    with h5py.File(hdf_file, 'r') as f:
+
+        plan_name = f['Plan Data']['Plan Information'].attrs['Plan Title'].decode('UTF-8')
+        flow_name = f['Plan Data']['Plan Information'].attrs['Flow Title'].decode('UTF-8')
+        flow_file = f['Plan Data']['Plan Information'].attrs['Flow Filename'].decode('UTF-8')
+        geo_name = f['Plan Data']['Plan Information'].attrs['Geometry Title'].decode('UTF-8')
+        geo_file = f['Plan Data']['Plan Information'].attrs['Geometry Filename'].decode('UTF-8')
+        timestep = f['Plan Data']['Plan Information'].attrs['Computation Time Step Base'].decode('UTF-8')
+        projection = f.attrs['Projection'].decode('UTF-8')
+        software_version = f.attrs['File Version'].decode('UTF-8')
+        units_system = f.attrs['Units System'].decode('UTF-8')
+
+    run_type = '2D'
+    
     args_dict =  {
-            "file": hdf_file,
-            "postprocessingdirectory": "./output/perimeter",
-            "model_title": model_title,
-            "wkt": projection,  
-        }
+                    "model_title": model_title,
+                    "file": hdf_file,
+                    "s3_model_location": s3_model_location,
+                    "postprocessingdirectory": "./output/perimeter",
+                    "forecast": model_title,
+                    "wkt": projection,
+                    "timestep": timestep,
+                    "run_type": run_type,
+                    "region": region,
+                    "software_version": software_version,
+                    "units_system": units_system,
+                    }      
 
     # Simplespace is used to convert a dictionary to the same type as sysArgs would have.
     args = SimpleNamespace(**args_dict)
+    
     make_perimeter(args)
