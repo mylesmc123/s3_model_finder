@@ -7,7 +7,8 @@ import shapefile
 import time
 import argparse
 from types import SimpleNamespace
-from utils import ras_output_extract_wse_to_shp
+import ras_output_extract_wse_to_shp
+from tqdm import tqdm
 
 hdf_file = r"Z:\py\s3_model_finder\s3_hdf_files\East_Galveston_Bay.p08.hdf"
 forecast = hdf_file.split("\\")[-1].split(".")[0]
@@ -17,6 +18,7 @@ with h5py.File(hdf_file, 'r') as hf:
 args_dict =  {
         "file": hdf_file,
         "postprocessingdirectory": "./output",
+        "forecast": forecast,
         "wkt": projection,  
     }
 
@@ -34,7 +36,8 @@ ras_output_extract_wse_to_shp.tempDirSweep(tempDir)
 hf = h5py.File(args.file, 'r')
 list_of_2DAreas = ras_output_extract_wse_to_shp.get2DAreaNames(hf)
 timesteps = ras_output_extract_wse_to_shp.get_timesteps(hf)
-all_data = np.empty((0, timesteps + 6), ) # Includes an extra wse column for maximum row value
+# all_data = np.empty((0, timesteps + 6), ) # Includes an extra wse column for maximum row value
+all_data = np.empty((0, 5), ) # IDoesnt include wse columns
 
 #Initialize shapefile of all 2D flow cells
 poly_wse_shp = os.path.join(tempDir, 'ras_wse.shp')
@@ -73,30 +76,30 @@ for curr_2DArea in list_of_2DAreas:
 
     xy_pts = np.array(ras_output_extract_wse_to_shp.get2DArea_cellcenter_pts(curr_2DArea, hf))
     min_elev = np.array(ras_output_extract_wse_to_shp.get2DCells_min_elev(curr_2DArea, hf)).round(decimals=2)
-    # transpose_min_elev = min_elev.T
+    transpose_min_elev = min_elev.T
 
-    wse_data = np.array(ras_output_extract_wse_to_shp.get2DArea_wse_data(curr_2DArea, hf))
-    transpose_wse = wse_data.T.round(decimals=2)
+    # wse_data = np.array(ras_output_extract_wse_to_shp.get2DArea_wse_data(curr_2DArea, hf))
+    # transpose_wse = wse_data.T.round(decimals=2)
 
-    #Find WSE values that are equal to cell min elev, set to NaN, all others set to 1
-    repeats_cell_min_elev = np.tile(min_elev, (timesteps,1)).T
-    cell_depths = transpose_wse - repeats_cell_min_elev
-    cell_depths[cell_depths > 0] = 1
-    cell_depths[cell_depths == 0] = 0
+    # Find WSE values that are equal to cell min elev, set to NaN, all others set to 1
+    # repeats_cell_min_elev = np.tile(min_elev, (timesteps,1)).T
+    # cell_depths = transpose_wse - repeats_cell_min_elev
+    # cell_depths[cell_depths > 0] = 1
+    # cell_depths[cell_depths == 0] = 0
 
     #Remove zero depth values
-    filtered_transpose_wse = cell_depths * transpose_wse
-    filtered_transpose_wse[filtered_transpose_wse==0] = -9999
-    filtered_transpose_wse.round(decimals=2)
-    max_of_row = np.max(filtered_transpose_wse, axis=1)
+    # filtered_transpose_wse = cell_depths * transpose_wse
+    # filtered_transpose_wse[filtered_transpose_wse==0] = -9999
+    # filtered_transpose_wse.round(decimals=2)
+    # max_of_row = np.max(filtered_transpose_wse, axis=1)
 
     cell_index = np.arange(xy_pts.shape[0])
     curr_2DArea_index = [curr_2DArea.decode('UTF-8')]* (xy_pts.shape[0])
 
     #Adding columns to results array
-    all_data_for_curr_2DArea = np.column_stack((curr_2DArea_index,cell_index, xy_pts, min_elev))
-    all_data_for_curr_2DArea = np.concatenate((all_data_for_curr_2DArea, filtered_transpose_wse), axis=1)
-    all_data_for_curr_2DArea = np.column_stack((all_data_for_curr_2DArea, max_of_row))
+    all_data_for_curr_2DArea = np.column_stack((curr_2DArea_index, cell_index, xy_pts, min_elev))
+    # all_data_for_curr_2DArea = np.concatenate((all_data_for_curr_2DArea, filtered_transpose_wse), axis=1)
+    # all_data_for_curr_2DArea = np.column_stack((all_data_for_curr_2DArea, max_of_row))
 
     #Save into the overall dataset
     all_data = np.append(all_data, all_data_for_curr_2DArea, axis=0)
@@ -120,14 +123,13 @@ for curr_2DArea in list_of_2DAreas:
     curr_2DArea_Polygon_xy_pts = []
     cell_id = 0
     cell_ids = []
-    for row in cell_face_index_pts:
+    print ('Assemble current 2D Area polygons..')
+    for row in tqdm(cell_face_index_pts):
         #find if facepoints are perimeter
+        print('find if facepoints are on the perimeter')
         perimeter_facepts = []
-        
-        for facept in row:
-            
+        for facept in tqdm(row):
             if facept != -1:
-
                 if cell_facept_is_perimeter[facept] == -1:
                     perimeter_facepts.append(facept)
         #print(perimeter_facepts)
@@ -147,8 +149,8 @@ for curr_2DArea in list_of_2DAreas:
             if i == (index_size -1):
                 next_facept = row[0]
 
-
-            if curr_facept in perimeter_facepts:
+            #If the current facept is on the perimeter, add the perimeter points
+            if curr_facept in tqdm(perimeter_facepts):
                 
                 if next_facept in perimeter_facepts:
                     face_index=0
@@ -162,7 +164,7 @@ for curr_2DArea in list_of_2DAreas:
                                 curr_face_index = face_index
                                 # print("found face")
                                 break
-
+                        
                         if next_facept == face_facept_index[face_index][0]:
                             potential_face = face_index
                             

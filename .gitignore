@@ -1,3 +1,7 @@
 /.conda
 s3_hdf_files/*
 **.hdf
+output/*/tempfiles/**
+**.pyc
+**.hdf.*
+output/perimeter/*/tempfiles/**
