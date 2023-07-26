@@ -28,5 +28,6 @@
     "./output/perimeter\\UC_UpperCalcasieu.geojson",
     "./output/perimeter\\WestForkCalcasieu_2.geojson",
     "./output/perimeter\\WF_WestForkCalcasie.geojson",
-    "./output/perimeter\\WF_WestForkCalcasieu.geojson"
+    "./output/perimeter\\WF_WestForkCalcasieu.geojson",
+    "./output/perimeter\\WH_Whisky_Chitto.geojson"
 ]
