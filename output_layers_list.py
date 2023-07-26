@@ -1,7 +1,7 @@
 import glob
 import json
 
-def output_layers_list(geojson_folder_path, outputfilename)
+def output_layers_list(geojson_folder_path, outputfilename):
     # get geojson files in geojson folder
     file_list = glob.glob(geojson_folder_path + '*.geojson')
     # convert file list to json

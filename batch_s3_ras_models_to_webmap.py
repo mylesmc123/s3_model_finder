@@ -164,16 +164,26 @@ for region in last_plan_files:
                 # Is 1D/2D?
                 if ('Cross Section Interpolation Surfaces' in f['Geometry'].keys()) and ('2D Flow Areas' in f['Geometry'].keys()):
                     run_type = '1D/2D'
-                 
-                plan_name = f['Plan Data']['Plan Information'].attrs['Plan Title'].decode('UTF-8')
-                flow_name = f['Plan Data']['Plan Information'].attrs['Flow Title'].decode('UTF-8')
-                flow_file = f['Plan Data']['Plan Information'].attrs['Flow Filename'].decode('UTF-8')
-                geo_name = f['Plan Data']['Plan Information'].attrs['Geometry Title'].decode('UTF-8')
-                geo_file = f['Plan Data']['Plan Information'].attrs['Geometry Filename'].decode('UTF-8')
-                timestep = f['Plan Data']['Plan Information'].attrs['Computation Time Step Base'].decode('UTF-8')
-                projection = f.attrs['Projection'].decode('UTF-8')
-                software_version = f.attrs['File Version'].decode('UTF-8')
-                units_system = f.attrs['Units System'].decode('UTF-8')
+
+                try: 
+                    plan_name = f['Plan Data']['Plan Information'].attrs['Plan Title'].decode('UTF-8')
+                    flow_name = f['Plan Data']['Plan Information'].attrs['Flow Title'].decode('UTF-8')
+                    flow_file = f['Plan Data']['Plan Information'].attrs['Flow Filename'].decode('UTF-8')
+                    geo_name = f['Plan Data']['Plan Information'].attrs['Geometry Title'].decode('UTF-8')
+                    geo_file = f['Plan Data']['Plan Information'].attrs['Geometry Filename'].decode('UTF-8')
+                    timestep = f['Plan Data']['Plan Information'].attrs['Computation Time Step Base'].decode('UTF-8')
+                    projection = f.attrs['Projection'].decode('UTF-8')
+                    software_version = f.attrs['File Version'].decode('UTF-8')
+                    units_system = f.attrs['Units System'].decode('UTF-8')
+                except:
+                    print('Could not get model metadata from hdf file. Skipping Plan...')
+                    processed_models_dict['failed_models_list'].append(s3_model_location)
+                    continue
+
+                    # Copy poly_wse_shp shapefiles with glob in the tempfiles dir to invalid folder and rename to model_title
+                    # for shp in glob.glob(f'tempDir/*'):
+                    #     shutil.copy(shp, os.path.join(home_dir, "invalid_geometry", f'{args.model_title}_{shp}'))
+                    # gdf = "invalid_geometry"
 
             # If model is 2D or 1D/2D run ras_hdf_to_perimeter
             if run_type != '1D':

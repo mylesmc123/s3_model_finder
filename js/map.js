@@ -153,14 +153,14 @@ map.on('style.load', function () {
         const [key, value] = entry;
         // console.log(key, value);
         popuptext = popuptext.concat(`<br><b><u>${key}</u></b><br>
-                                      Model Title: ${value["Model Title"]}<br>
-                                      Region: ${value.Region}<br>                              
-                                      Area2D: ${value.Area2D}<br>
-                                      Run Type: ${value["Run Type"]}<br>
-                                      Timestep: ${value["Timestep"]}<br>
-                                      Software Version: ${value["Software Version"]}<br>
-                                      Units System: ${value["Units System"]}<br>
-                                      S3 Model Location: ${value["S3 Model Location"]}<br>
+        <b>Model Title</b>: ${value["Model Title"]}<br>
+        <b>Region</b>: ${value.Region}<br>                              
+        <b>Area2D</b>: ${value.Area2D}<br>
+        <b>Run Type</b>: ${value["Run Type"]}<br>
+        <b>Timestep</b>: ${value["Timestep"]}<br>
+        <b>Software Version</b>: ${value["Software Version"]}<br>
+        <b>Units System</b>: ${value["Units System"]}<br>
+        <b>S3 Model Location</b>: ${value["S3 Model Location"]}<br>
                                       `)
         // console.log(popuptext);
       });
