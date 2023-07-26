@@ -182,7 +182,7 @@ def make_perimeter(args):
         f.close()
 
     # Open the shapefile as a geodataframe, dissolve the polygons, reproject to EPS4326, and save as a geojson.
-    output_geojson = os.path.join(home_dir, f'{forecast}.geojson')
+    output_geojson = os.path.join(home_dir, f'{args.forecast}.geojson')
     gpd.read_file(poly_wse_shp).dissolve().to_crs(epsg=4326).to_file(output_geojson, driver='GeoJSON')
 
     # Delete the temp directory
