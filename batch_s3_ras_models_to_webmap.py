@@ -123,7 +123,7 @@ for region in model_dirs:
 #                 model_dirs['first_plan_file'] = plan_hdf
 
 
-last_plan_files['lwi-region4']['deliverables/20230504_08080203_UC_RAS1D2DModelSetupP2/UC_UpperCalcasieu-2D']
+# last_plan_files['lwi-region4']['deliverables/20230504_08080203_UC_RAS1D2DModelSetupP2/UC_UpperCalcasieu-2D']
 
 # %%
 # For each plan, open hdf and get model name, description, and ras type (1D, 2D, etc.), and pull a geospatial extent from the hdf.
@@ -135,6 +135,7 @@ for region in last_plan_files:
             # set download file name path and create directory if it doesnt exist
             head, tail = os.path.split(last_plan_files[region][model_dir][plan])
             hdf_dl_file_name = "temp.hdf"
+            model_title = tail.split(".")[0]
             # if not os.path.exists(hdf_dl_file_name):
             #     os.makedirs(hdf_dl_file_name)
 
@@ -150,16 +151,15 @@ for region in last_plan_files:
             with h5py.File(hdf_dl_file_name, "r") as f:
                 print (f.keys())
                 # Is 1D?
-                if 'Cross Sections Interpolation Surfaces' in f['Geometry'].keys() and not ('2D Flow Areas' in f['Geometry'].keys()):
+                if 'Cross Section Interpolation Surfaces' in f['Geometry'].keys() and not ('2D Flow Areas' in f['Geometry'].keys()):
                     run_type = '1D'
                 # Is 2D?
-                if '2D Flow Areas' in f['Geometry'].keys() and not ('Cross Sections Interpolation Surfaces' in f['Geometry'].keys()):
+                if '2D Flow Areas' in f['Geometry'].keys() and not ('Cross Section Interpolation Surfaces' in f['Geometry'].keys()):
                     run_type = '2D'
                 # Is 1D/2D?
                 if ('Cross Section Interpolation Surfaces' in f['Geometry'].keys()) and ('2D Flow Areas' in f['Geometry'].keys()):
                     run_type = '1D/2D'
-                
-                model_title = f['Plan Data']['Plan Information'].attrs['Project Title'].decode('UTF-8') 
+                 
                 plan_name = f['Plan Data']['Plan Information'].attrs['Plan Title'].decode('UTF-8')
                 flow_name = f['Plan Data']['Plan Information'].attrs['Flow Title'].decode('UTF-8')
                 flow_file = f['Plan Data']['Plan Information'].attrs['Flow Filename'].decode('UTF-8')
@@ -170,79 +170,33 @@ for region in last_plan_files:
                 software_version = f.attrs['File Version'].decode('UTF-8')
                 units_system = f.attrs['Units System'].decode('UTF-8')
 
-            # Run ras_hdf_to_perimeter
-            args_dict =  {
-                    "file": hdf_dl_file_name,
-                    "postprocessingdirectory": "./output/perimeter",
-                    "forecast": model_title,
-                    "wkt": projection,  
-                }
+            # If model is 2D or 1D/2D run ras_hdf_to_perimeter
+            if run_type != '1D':
+                # Run ras_hdf_to_perimeter
+                args_dict =  {
+                        "model_title": model_title,
+                        "file": hdf_dl_file_name,
+                        "postprocessingdirectory": "./output/perimeter",
+                        "forecast": model_title,
+                        "wkt": projection,
+                        "timestep": timestep,
+                        "run_type": run_type,
+                        "region": region,
+                        "software_version": software_version,
+                        "units_system": units_system,
+                    }
+                
+                # Simplespace is used to convert a dictionary to the same type as sysArgs would have.
+                args = SimpleNamespace(**args_dict)
+                
+                # return the geojson perimeter file name
+                perimeter_geojson = ras_hdf_to_perimeter.make_perimeter(args)
 
-            # Simplespace is used to convert a dictionary to the same type as sysArgs would have.
-            args = SimpleNamespace(**args_dict)
-
-            perimeter_geojson = ras_hdf_to_perimeter.make_perimeter(args)
+            else:
+                # TODO - Run ras_hdf_to_perimeter_1D
+                print('1D model parsing not yet implemented.')
+                
+                
 
             # delete hdf file
             os.remove(hdf_dl_file_name)
-
-
-# %%
-client.download_file(
-    Bucket='lwi-region4',
-    Key='deliverables/20230310_12010004_TO_RASModelSetup/TO_ToledoBend.p03.hdf',
-    Filename=os.path.join('./s3_hdf_files/', 'TO_ToledoBend.p03.hdf')
-)
-
-# %%
-client.download_file(
-    Bucket='lwi-region7',
-    Key='deliverables/MaurepasRASInitial/RAS/HECRAS_PASS_MANCHAC/LWI_R7_Maurepas.p06.hdf',
-    Filename=os.path.join('./s3_hdf_files/', 'LWI_R7_Maurepas.p06.hdf')
-)
-
-# %%
-# check for 1D, 2D, or 1D/2D
-with h5py.File("Z:\py\s3_model_finder\s3_hdf_files\East_Galveston_Bay.p08.hdf", "r") as f:
-    print (f['Geometry'].keys())
-    # Is 1D?
-    if 'Cross Sections' in f['Geometry'].keys() and not ('2D Flow Areas' in f['Geometry'].keys()):
-        run_type = '1D'
-    # Is 2D?
-    if '2D Flow Areas' in f['Geometry'].keys() and not ('Cross Sections' in f['Geometry'].keys()):
-        run_type = '2D'
-    # Is 1D/2D?
-    if ('Cross Sections' in f['Geometry'].keys()) and ('2D Flow Areas' in f['Geometry'].keys()):
-        run_type = '1D/2D'
-
-    model_title = f['Plan Data']['Plan Information'].attrs['Project Title'] 
-    plan_name = f['Plan Data']['Plan Information'].attrs['Plan Title']
-    flow_name = f['Plan Data']['Plan Information'].attrs['Flow Title']
-    flow_file = f['Plan Data']['Plan Information'].attrs['Flow Filename']
-    geo_name = f['Plan Data']['Plan Information'].attrs['Geometry Title']
-    geo_file = f['Plan Data']['Plan Information'].attrs['Geometry Filename']
-    timestep = f['Plan Data']['Plan Information'].attrs['Computation Time Step Base']
-    projection = f.attrs['Projection']
-    software_version = f.attrs['File Version']
-    units_system = f.attrs['Units System']
-
-    if run_type != '1D':
-        # Get 2D Flow Areas
-        twoD_areas = {}
-        print(f['Geometry']['2D Flow Areas'].keys())
-        for key in f['Geometry']['2D Flow Areas'].keys():
-            x = f['Geometry']['2D Flow Areas'][key]
-            # if is a group and not a dataset, it is a 2d Area name.
-            if isinstance(x, h5py.Group):
-                twoD_areas[key] = {
-                    'Cell Size': x.attrs['Cell Average Size'],
-                }
-
-    
-
-
-
-# %%
-last_plan_files[region][model_dir]
-
-

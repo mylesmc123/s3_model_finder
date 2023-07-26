@@ -12,7 +12,7 @@ from tqdm import tqdm
 import geopandas as gpd
 
 def make_perimeter(args):
-    home_dir = os.path.join(args.postprocessingdirectory,args.forecast)
+    home_dir = os.path.join(args.postprocessingdirectory,args.model_title)
     tempDir = os.path.join(home_dir,"tempfiles")
     postp_area = os.path.join(args.postprocessingdirectory, "postp_area.shp")
 
@@ -181,9 +181,31 @@ def make_perimeter(args):
         f.write(args.wkt)
         f.close()
 
-    # Open the shapefile as a geodataframe, dissolve the polygons, reproject to EPS4326, and save as a geojson.
-    output_geojson = os.path.join(home_dir, f'{args.forecast}.geojson')
-    gpd.read_file(poly_wse_shp).dissolve().to_crs(epsg=4326).to_file(output_geojson, driver='GeoJSON')
+    # Open the shapefile as a geodataframe, dissolve the polygons, reproject to EPS4326, add data, and save as a geojson.
+    output_geojson = os.path.join(home_dir, f'{args.model_title}.geojson')
+# {
+#                         "file": hdf_dl_file_name,
+#                         "postprocessingdirectory": "./output/perimeter",
+#                         "forecast": model_title,
+#                         "wkt": projection,
+#                         "timestep": timestep,
+#                         "run_type": run_type,
+#                         "region": region,
+#                         "software_version": software_version,
+#                         "units_system": units_system,  
+#                     }
+
+    gdf = gpd.read_file(poly_wse_shp).dissolve(by="Area2D").to_crs(epsg=4326).drop(columns=["Cell_Index", "min_elev", "Easting", "Northing"])
+    # Add columns for model_title, region, run_type, timestep, software_version, units_system
+    gdf["Model Title"] = args.model_title
+    gdf["Region"] = args.region
+    gdf["Run Type"] = args.run_type
+    gdf["Timestep"] = args.timestep
+    gdf["Software Version"] = args.software_version
+    gdf["Units System"] = args.units_system
+
+    
+    # .to_file(output_geojson, driver='GeoJSON')
 
     # Delete the temp directory
     try:
@@ -194,14 +216,14 @@ def make_perimeter(args):
 if __name__ == "__main__":
         
     hdf_file = r"Z:\py\s3_model_finder\s3_hdf_files\East_Galveston_Bay.p08.hdf"
-    forecast = hdf_file.split("\\")[-1].split(".")[0]
+    model_title = hdf_file.split("\\")[-1].split(".")[0]
     with h5py.File(hdf_file, 'r') as hf:
         projection = hf.attrs['Projection'].decode('UTF-8')
 
     args_dict =  {
             "file": hdf_file,
             "postprocessingdirectory": "./output/perimeter",
-            "forecast": forecast,
+            "model_title": model_title,
             "wkt": projection,  
         }
 
