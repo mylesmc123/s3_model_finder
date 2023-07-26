@@ -185,15 +185,11 @@ for region in last_plan_files:
                     #     shutil.copy(shp, os.path.join(home_dir, "invalid_geometry", f'{args.model_title}_{shp}'))
                     # gdf = "invalid_geometry"
 
-            # If model is 2D or 1D/2D run ras_hdf_to_perimeter
-            if run_type != '1D':
-                # Run ras_hdf_to_perimeter
-                args_dict =  {
+            args_dict =  {
                         "model_title": model_title,
                         "file": hdf_dl_file_name,
                         "s3_model_location": s3_model_location,
                         "postprocessingdirectory": "./output/perimeter",
-                        "forecast": model_title,
                         "wkt": projection,
                         "timestep": timestep,
                         "run_type": run_type,
@@ -202,11 +198,15 @@ for region in last_plan_files:
                         "units_system": units_system,
                     }
                 
-                # Simplespace is used to convert a dictionary to the same type as sysArgs would have.
-                args = SimpleNamespace(**args_dict)
-                
+            # Simplespace is used to convert a dictionary to the same type as sysArgs would have.
+            args = SimpleNamespace(**args_dict)
+            
+            # If model is 2D or 1D/2D run ras_hdf_to_perimeter_2d
+            if run_type != '1D':
+                # Run ras_hdf_to_perimeter
+                                
                 # return the perimeter gdf. 
-                perimeter_gdf = ras_hdf_to_perimeter.make_perimeter(args)
+                perimeter_gdf = ras_hdf_to_perimeter.make_perimeter_2d(args)
 
                 # if returned gdf is not a string, add this model directory to the completed list
                 if not isinstance(perimeter_gdf,str):
@@ -219,8 +219,8 @@ for region in last_plan_files:
                     json.dump(processed_models_dict, outfile)
 
             else:
-                # TODO - Run ras_hdf_to_perimeter_1D
-                print('1D model parsing not yet implemented.')
+                # Run ras_hdf_to_perimeter_1D
+                ras_hdf_to_perimeter.make_perimeter_1d(args)
                 
                 
 

@@ -11,8 +11,10 @@ from types import SimpleNamespace
 import ras_output_extract_wse_to_shp
 from tqdm import tqdm
 import geopandas as gpd
+import pandas as pd
+from shapely.geometry import Polygon, LineString, Point
 
-def make_perimeter(args):
+def make_perimeter_2d(args):
     home_dir = os.path.join(args.postprocessingdirectory)
     tempDir = os.path.join(home_dir,"tempfiles")
     postp_area = os.path.join(args.postprocessingdirectory, "postp_area.shp")
@@ -160,7 +162,52 @@ def make_perimeter(args):
         
 
     return gdf
+
+def make_perimeter_1d(args):
+    with h5py.File(args.file,'r') as hf:
+        df = pd.DataFrame()
+        gdf = gpd.GeoDataFrame()
+        coord_index_start = 0
+
+        df['XS_Name'] = hf['/Results/Unsteady/Geometry Info/Cross Section Only'][:]
+        
+        for i,v in enumerate(df['XS_Name']):
+            # pick style based on even or odd index
+            if (i % 2) == 0:
+                style = {"color": "#228B22", "weight": 5, "opacity": 0.65}
+            else:
+                # style = {'fillColor': '#00FFFFFF', 'color': '#00FFFFFF'}
+                style = {"color": "#ff7800", "weight": 5, "opacity": 0.65}
+            parts = hf['/Geometry/Cross Sections/Polyline Parts'][i,1]
+            # the index range of coordinates to pull based on the number of parts for each XS.
+            coord_index_end = coord_index_start + parts
+            coords_range = [coord_index_start, coord_index_end]
+            bounds = [hf['/Geometry/Cross Sections/Polyline Points'][coord_index_start:coord_index_end].tolist()][0]
+            # update start of range for next XS in loop.
+            coord_index_start += parts
+            line_geom = LineString(bounds)
+            line = gpd.GeoDataFrame(index=[i], geometry=[line_geom])
+            line['name'] = [v.decode("utf-8") ]
+            # print(str(v))
+            line['style'] = [style]
+            line.crs = args.wkt
+            # gdf = gdf.append(line) <-- append is deprecated. Use concat instead.
+            gdf = pd.concat([gdf, line], ignore_index=True)
+
+    gdf.dissolve().drop(columns=['name','style'])
+    gdf.to_crs(epsg=4326, inplace=True)
+
+    gdf["Model Title"] = args.model_title
+    gdf["Region"] = args.region
+    gdf["Run Type"] = args.run_type
+    gdf["Timestep"] = args.timestep
+    gdf["Software Version"] = args.software_version
+    gdf["Units System"] = args.units_system
+    gdf["S3 Model Location"] = args.s3_model_location    
     
+    outputfile = os.path.join(args.postprocessingdirectory, f'{args.model_title}.geojson')
+    gdf.to_file(outputfile, driver='GeoJSON')
+
 if __name__ == "__main__":
         
     hdf_file = r"Z:\py\s3_model_finder\s3_hdf_files\WC.p08.hdf"
@@ -182,7 +229,7 @@ if __name__ == "__main__":
 
     run_type = '2D'
     
-    args_dict =  {
+    args_dict_2d =  {
                     "model_title": model_title,
                     "file": hdf_file,
                     "s3_model_location": s3_model_location,
@@ -197,6 +244,7 @@ if __name__ == "__main__":
                     }      
 
     # Simplespace is used to convert a dictionary to the same type as sysArgs would have.
-    args = SimpleNamespace(**args_dict)
+    args_2d = SimpleNamespace(**args_dict_2d)
     
-    make_perimeter(args)
+    make_perimeter_2d(args_2d)
+    # make_perimeter_1d(args_1d)
