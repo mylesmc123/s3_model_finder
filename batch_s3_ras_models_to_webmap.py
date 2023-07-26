@@ -154,18 +154,18 @@ for region in last_plan_files:
 
             # open hdf file
             with h5py.File(hdf_dl_file_name, "r") as f:
-                print (f.keys())
-                # Is 1D?
-                if 'Cross Section Interpolation Surfaces' in f['Geometry'].keys() and not ('2D Flow Areas' in f['Geometry'].keys()):
-                    run_type = '1D'
-                # Is 2D?
-                if '2D Flow Areas' in f['Geometry'].keys() and not ('Cross Section Interpolation Surfaces' in f['Geometry'].keys()):
-                    run_type = '2D'
-                # Is 1D/2D?
-                if ('Cross Section Interpolation Surfaces' in f['Geometry'].keys()) and ('2D Flow Areas' in f['Geometry'].keys()):
-                    run_type = '1D/2D'
-
                 try: 
+                    print (f.keys())
+                    # Is 1D?
+                    if 'Cross Section Interpolation Surfaces' in f['Geometry'].keys() and not ('2D Flow Areas' in f['Geometry'].keys()):
+                        run_type = '1D'
+                    # Is 2D?
+                    if '2D Flow Areas' in f['Geometry'].keys() and not ('Cross Section Interpolation Surfaces' in f['Geometry'].keys()):
+                        run_type = '2D'
+                    # Is 1D/2D?
+                    if ('Cross Section Interpolation Surfaces' in f['Geometry'].keys()) and ('2D Flow Areas' in f['Geometry'].keys()):
+                        run_type = '1D/2D'
+                
                     plan_name = f['Plan Data']['Plan Information'].attrs['Plan Title'].decode('UTF-8')
                     flow_name = f['Plan Data']['Plan Information'].attrs['Flow Title'].decode('UTF-8')
                     flow_file = f['Plan Data']['Plan Information'].attrs['Flow Filename'].decode('UTF-8')
