@@ -168,8 +168,13 @@ def make_perimeter_1d(args):
         df = pd.DataFrame()
         gdf = gpd.GeoDataFrame()
         coord_index_start = 0
-
-        df['XS_Name'] = hf['/Results/Unsteady/Geometry Info/Cross Section Only'][:]
+        try:
+            df['XS_Name'] = hf['/Results/Unsteady/Geometry Info/Cross Section Only'][:]
+            args.run_type = '1D Unsteady'
+        except:
+            df['XS_Name'] = hf['/Results/Steady/Output/Geometry Info/Cross Section Only'][:]
+            args.run_type = '1D Steady'
+            
         
         for i,v in enumerate(df['XS_Name']):
             # pick style based on even or odd index

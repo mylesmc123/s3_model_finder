@@ -38,10 +38,13 @@ response = client.list_buckets()
 bucket_names = [bucket['Name'] for bucket in response['Buckets']]
 # Limiting to buckets I have access to.
 bucket_names = [
- 'lwi-region4',
- 'lwi-region5',
- 'lwi-region6',
- 'lwi-region7',
+    'lwi-region1',
+    'lwi-region2',
+    'lwi-region3',
+#  'lwi-region4',
+#  'lwi-region5',
+#  'lwi-region6',
+#  'lwi-region7',
  ]
 
 
@@ -98,7 +101,7 @@ for region in models:
         # print(head)
         model_dirs[region]['dirs'].append(head)
 
-model_dirs['lwi-region4']['dirs']
+model_dirs[region]['dirs']
 
 
 # %%
@@ -229,3 +232,7 @@ for region in last_plan_files:
 
 # %%
 output_layers_list.output_layers_list('./output/perimeter/', './output/perimeter_list.json')
+
+# %%
+print("-------Done.-------")
+# %%
